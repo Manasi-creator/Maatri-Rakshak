@@ -67,7 +67,7 @@ class DashboardPage extends StatelessWidget {
           crossAxisCount: crossAxisCount,
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
-          childAspectRatio: 1.3,
+          childAspectRatio: isWide ? 1.5 : 1.15,
           children: [
             _SummaryCard(
               number: '${patients.length}',
@@ -386,8 +386,7 @@ class DashboardPage extends StatelessWidget {
                     ),
                   ),
                 ),
-              )
-              .toList(),
+              ).toList(),
         );
       },
     );

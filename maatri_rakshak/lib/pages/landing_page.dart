@@ -427,6 +427,7 @@ class _AboutSection extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                       color: AppColors.deepNavy,
                     ),
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 18),
                   Text(
@@ -482,7 +483,7 @@ class _WorkflowSection extends StatelessWidget {
     ];
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           'How MaatriRakshak Works',
@@ -491,6 +492,7 @@ class _WorkflowSection extends StatelessWidget {
             fontWeight: FontWeight.w800,
             color: AppColors.deepNavy,
           ),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),
         ...steps.map(
@@ -601,59 +603,62 @@ class _FeatureGridSection extends StatelessWidget {
             fontWeight: FontWeight.w800,
             color: AppColors.deepNavy,
           ),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 24),
-        Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          children: features.map((feature) {
-            return SizedBox(
-              width: 260,
-              child: Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border),
+        Center(
+          child: Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: features.map((feature) {
+              return SizedBox(
+                width: 260,
+                child: Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: AppColors.lightTeal,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.medical_services_outlined,
+                          color: AppColors.primaryTeal,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        feature[0],
+                        style: GoogleFonts.inter(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.deepNavy,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        feature[1],
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          height: 1.5,
+                          color: AppColors.secondaryText,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: AppColors.lightTeal,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.medical_services_outlined,
-                        color: AppColors.primaryTeal,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      feature[0],
-                      style: GoogleFonts.inter(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.deepNavy,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      feature[1],
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        height: 1.5,
-                        color: AppColors.secondaryText,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
+              );
+            }).toList(),
+          ),
         ),
       ],
     );
@@ -673,7 +678,7 @@ class _OfflineSection extends StatelessWidget {
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             'Healthcare Shouldn\'t Stop When the Internet Does.',
@@ -682,6 +687,7 @@ class _OfflineSection extends StatelessWidget {
               fontWeight: FontWeight.w800,
               color: AppColors.deepNavy,
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 14),
           Text(
@@ -704,7 +710,7 @@ class _RiskSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           'Understand Risk. Act with Confidence.',
@@ -713,43 +719,46 @@ class _RiskSection extends StatelessWidget {
             fontWeight: FontWeight.w800,
             color: AppColors.deepNavy,
           ),
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 18),
-        Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          children: const [
-            SizedBox(
-              width: 260,
-              child: _RiskCard(
-                title: 'LOW RISK',
-                score: '18 / 100',
-                status: 'Routine Follow-up',
-                color: AppColors.lowRiskGreen,
-                progress: 0.18,
+        Center(
+          child : Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: const [
+              SizedBox(
+                width: 260,
+                child: _RiskCard(
+                  title: 'LOW RISK',
+                  score: '18 / 100',
+                  status: 'Routine Follow-up',
+                  color: AppColors.lowRiskGreen,
+                  progress: 0.18,
+                ),
               ),
-            ),
-            SizedBox(
-              width: 260,
-              child: _RiskCard(
-                title: 'MODERATE RISK',
-                score: '62 / 100',
-                status: 'Medical Review Recommended',
-                color: AppColors.mediumRiskOrange,
-                progress: 0.62,
+              SizedBox(
+                width: 260,
+                child: _RiskCard(
+                  title: 'MODERATE RISK',
+                  score: '62 / 100',
+                  status: 'Medical Review Recommended',
+                  color: AppColors.mediumRiskOrange,
+                  progress: 0.62,
+                ),
               ),
-            ),
-            SizedBox(
-              width: 260,
-              child: _RiskCard(
-                title: 'HIGH RISK',
-                score: '89 / 100',
-                status: 'Urgent Hospital Referral',
-                color: AppColors.highRiskRed,
-                progress: 0.89,
+              SizedBox(
+                width: 260,
+                child: _RiskCard(
+                  title: 'HIGH RISK',
+                  score: '89 / 100',
+                  status: 'Urgent Hospital Referral',
+                  color: AppColors.highRiskRed,
+                  progress: 0.89,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
