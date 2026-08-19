@@ -394,6 +394,21 @@ class MockDataRepository extends ChangeNotifier {
     ]..sort((a, b) => b.timestamp.compareTo(a.timestamp));
   }
 
+  Patient? _selectedPatient;
+  Facility? _selectedFacility;
+
+  Patient? get selectedPatient => _selectedPatient;
+  set selectedPatient(Patient? patient) {
+    _selectedPatient = patient;
+    notifyListeners();
+  }
+
+  Facility? get selectedFacility => _selectedFacility;
+  set selectedFacility(Facility? facility) {
+    _selectedFacility = facility;
+    notifyListeners();
+  }
+
   List<Patient> get patients => _patients;
   List<Assessment> get assessments => _assessments;
   List<Facility> get facilities => _facilities;

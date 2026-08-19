@@ -35,8 +35,8 @@ class _TransportBookingPageState extends State<TransportBookingPage> {
   void initState() {
     super.initState();
     _patients = _repo.patients;
-    _patient = _repo.patients.first;
-    _facility = _repo.facilities.first;
+    _patient = _repo.selectedPatient ?? (_repo.patients.isNotEmpty ? _repo.patients.first : null);
+    _facility = _repo.selectedFacility ?? (_repo.facilities.isNotEmpty ? _repo.facilities.first : null);
   }
 
   @override

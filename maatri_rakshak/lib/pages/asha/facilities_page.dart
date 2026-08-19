@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../data/mock_data.dart';
 import '../../models/facility.dart';
@@ -17,12 +18,14 @@ class _FacilitiesPageState extends State<FacilitiesPage> {
   late List<Facility> _filteredFacilities;
   final _searchController = TextEditingController();
   String _selectedFilter = 'All';
+  String? _selectedFacilityId;
 
   @override
   void initState() {
     super.initState();
     _dataRepo = MockDataRepository.instance();
     _filteredFacilities = _dataRepo.facilities;
+    _selectedFacilityId = _dataRepo.selectedFacility?.id;
   }
 
   @override
@@ -31,10 +34,19 @@ class _FacilitiesPageState extends State<FacilitiesPage> {
     super.dispose();
   }
 
-  void _filterFacilities(String query) {
+  void _applyFilters() {
+    final query = _searchController.text.trim();
+    var list = _dataRepo.searchFacilities(query);
+    if (_selectedFilter != 'All') {
+      list = list.where((f) => f.type == _selectedFilter).toList();
+    }
     setState(() {
-      _filteredFacilities = _dataRepo.searchFacilities(query);
+      _filteredFacilities = list;
     });
+  }
+
+  void _filterFacilities(String query) {
+    _applyFilters();
   }
 
   @override
@@ -120,6 +132,7 @@ class _FacilitiesPageState extends State<FacilitiesPage> {
                     setState(() {
                       _selectedFilter = type;
                     });
+                    _applyFilters();
                   },
                   backgroundColor: AppColors.white,
                   selectedColor: AppColors.primaryTeal,
@@ -167,7 +180,12 @@ class _FacilitiesPageState extends State<FacilitiesPage> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: AppColors.white,
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(
+                    color: _selectedFacilityId == facility.id
+                        ? AppColors.primaryTeal
+                        : AppColors.border,
+                    width: _selectedFacilityId == facility.id ? 2 : 1,
+                  ),
                   borderRadius: entry.key == 0 && isLast
                       ? BorderRadius.circular(14)
                       : entry.key == 0
@@ -267,8 +285,37 @@ class _FacilitiesPageState extends State<FacilitiesPage> {
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed: () {
-                              // TODO: Get directions
+                            onPressed: () async {
+                              if (facility.latitude != null && facility.longitude != null) {
+                                final uri = Uri.parse(
+                                  'https://www.openstreetmap.org/directions?engine=graphhopper_car&route=;${facility.latitude},${facility.longitude}',
+                                );
+                                if (await canLaunchUrl(uri)) {
+                                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                } else {
+                                  final fallbackUri = Uri.parse(
+                                    'https://www.google.com/maps/dir/?api=1&destination=${facility.latitude},${facility.longitude}',
+                                  );
+                                  if (await canLaunchUrl(fallbackUri)) {
+                                    await launchUrl(fallbackUri, mode: LaunchMode.externalApplication);
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Could not open map URL.')),
+                                    );
+                                  }
+                                }
+                              } else {
+                                final addressUri = Uri.parse(
+                                  'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(facility.name + ", " + facility.address)}',
+                                );
+                                if (await canLaunchUrl(addressUri)) {
+                                  await launchUrl(addressUri, mode: LaunchMode.externalApplication);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Could not open maps search.')),
+                                  );
+                                }
+                              }
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.primaryTeal,
@@ -290,17 +337,34 @@ class _FacilitiesPageState extends State<FacilitiesPage> {
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () {
-                              // TODO: Select facility
+                              setState(() {
+                                if (_selectedFacilityId == facility.id) {
+                                  _selectedFacilityId = null;
+                                  _dataRepo.selectedFacility = null;
+                                } else {
+                                  _selectedFacilityId = facility.id;
+                                  _dataRepo.selectedFacility = facility;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Selected facility: ${facility.name}'),
+                                      backgroundColor: AppColors.lowRiskGreen,
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                }
+                              });
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryTeal,
+                              backgroundColor: _selectedFacilityId == facility.id
+                                  ? AppColors.deepNavy
+                                  : AppColors.primaryTeal,
                               foregroundColor: AppColors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
                             child: Text(
-                              'Select',
+                              _selectedFacilityId == facility.id ? 'Selected' : 'Select',
                               style: GoogleFonts.inter(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,

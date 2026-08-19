@@ -1,0 +1,902 @@
+import 'dart:typed_data';
+import 'package:flutter/services.dart' show rootBundle;
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+
+import '../data/mock_data.dart';
+import '../models/assessment.dart';
+import '../models/patient.dart';
+import '../models/report_record.dart';
+import '../models/timeline_event.dart';
+import '../models/facility.dart';
+import '../models/transport_request.dart';
+
+class PdfReportService {
+  static Future<Uint8List> generateReport(ReportRecord report) async {
+    final repo = MockDataRepository.instance();
+    final patient = repo.getPatient(report.patientId);
+    if (patient == null) {
+      throw Exception('Patient not found.');
+    }
+
+    final latestAssessment = repo.getLatestAssessment(patient.id);
+    final patientEvents = repo.timelineEvents.where((e) => e.patientId == patient.id).toList()
+      ..sort((a, b) => b.timestamp.compareTo(a.timestamp)); // Newest first
+
+    final patientTransports = repo.transportRequests.where((t) => t.patientId == patient.id).toList();
+
+    // Check if there is a selected facility or if there is a recommended one
+    final selectedFacility = repo.selectedFacility;
+
+    // Load logo if available
+    pw.MemoryImage? logoImage;
+    try {
+      final imageBytes = await rootBundle.load('assets/logo.png');
+      logoImage = pw.MemoryImage(imageBytes.buffer.asUint8List());
+    } catch (_) {
+      // Fallback if logo cannot be loaded
+    }
+
+    final doc = pw.Document();
+
+    final fontBase = pw.Font.helvetica();
+    final fontBold = pw.Font.helveticaBold();
+    final fontOblique = pw.Font.helveticaOblique();
+
+    final theme = pw.ThemeData.withFont(
+      base: fontBase,
+      bold: fontBold,
+      italic: fontOblique,
+    );
+
+    // Primary Colors matching MaatriRakshak style
+    const primaryTeal = PdfColor.fromInt(0xFF1599A8);
+    const deepNavy = PdfColor.fromInt(0xFF172B4D);
+    const greyText = PdfColor.fromInt(0xFF667085);
+    const lightGrey = PdfColor.fromInt(0xFFF3F4F6);
+
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        theme: theme,
+        margin: const pw.EdgeInsets.all(32),
+        header: (context) {
+          return pw.Column(
+            children: [
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: pw.CrossAxisAlignment.center,
+                children: [
+                  pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.center,
+                    children: [
+                      if (logoImage != null)
+                        pw.Container(
+                          width: 40,
+                          height: 40,
+                          margin: const pw.EdgeInsets.only(right: 12),
+                          child: pw.Image(logoImage),
+                        ),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            'MAATRIRAKSHAK',
+                            style: pw.TextStyle(
+                              color: primaryTeal,
+                              fontWeight: pw.FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                          pw.Text(
+                            'Maternal Health Care Coordination',
+                            style: pw.TextStyle(
+                              color: greyText,
+                              fontSize: 9,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Text(
+                        'CASE ASSESSMENT REPORT',
+                        style: pw.TextStyle(
+                          color: deepNavy,
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                      pw.Text(
+                        'Date: ${_formatDate(DateTime.now())}',
+                        style: pw.TextStyle(
+                          color: greyText,
+                          fontSize: 9,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              pw.Divider(color: primaryTeal, thickness: 1.5, height: 16),
+            ],
+          );
+        },
+        footer: (context) {
+          return pw.Column(
+            children: [
+              pw.Divider(color: PdfColors.grey300, thickness: 0.5, height: 12),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    'Generated by MaatriRakshak • Confidential maternal health record',
+                    style: pw.TextStyle(color: greyText, fontSize: 8),
+                  ),
+                  pw.Text(
+                    'Page ${context.pageNumber} of ${context.pagesCount}',
+                    style: pw.TextStyle(color: greyText, fontSize: 8),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
+        build: (context) {
+          return [
+            // Patient details card
+            _buildSectionHeader('1. PATIENT INFORMATION', primaryTeal),
+            pw.SizedBox(height: 8),
+            _buildPatientDetailsGrid(patient, latestAssessment, greyText, deepNavy, fontBold),
+            pw.SizedBox(height: 20),
+
+            // Health Status & Vitals
+            _buildSectionHeader('2. MATERNAL HEALTH ASSESSMENT & VITALS', primaryTeal),
+            pw.SizedBox(height: 8),
+            _buildVitalsTable(patient, latestAssessment, lightGrey, deepNavy, fontBold),
+            pw.SizedBox(height: 20),
+
+            // AI Assessment
+            _buildSectionHeader('3. AI-ASSISTED RISK ASSESSMENT', primaryTeal),
+            pw.SizedBox(height: 8),
+            _buildRiskScoreSection(patient, latestAssessment, primaryTeal, deepNavy, fontBold),
+            pw.SizedBox(height: 20),
+
+            // Doctor Clinical Review (if exists)
+            if (report.type == 'Doctor Review' || report.doctorName != null) ...[
+              _buildSectionHeader('4. DOCTOR / CLINICAL REVIEW', primaryTeal),
+              pw.SizedBox(height: 8),
+              _buildDoctorReviewSection(report, greyText, deepNavy, fontBold),
+              pw.SizedBox(height: 20),
+            ],
+
+            // Facility recommendation (if exists)
+            if (selectedFacility != null) ...[
+              _buildSectionHeader('5. SELECTED HEALTHCARE FACILITY', primaryTeal),
+              pw.SizedBox(height: 8),
+              _buildFacilitySection(selectedFacility, greyText, deepNavy, fontBold),
+              pw.SizedBox(height: 20),
+            ],
+
+            // Transport details (if exists)
+            if (patientTransports.isNotEmpty) ...[
+              _buildSectionHeader('6. EMERGENCY TRANSPORT LOGS', primaryTeal),
+              pw.SizedBox(height: 8),
+              _buildTransportSection(patientTransports, greyText, deepNavy, fontBold, lightGrey),
+              pw.SizedBox(height: 20),
+            ],
+
+            // Timeline
+            if (patientEvents.isNotEmpty) ...[
+              _buildSectionHeader('7. CASE ACTIVITY TIMELINE', primaryTeal),
+              pw.SizedBox(height: 8),
+              _buildTimelineSection(patientEvents, greyText, deepNavy, fontBold),
+              pw.SizedBox(height: 20),
+            ],
+
+            // Case summary recommendations
+            _buildSectionHeader('8. ACTION PLAN SUMMARY', primaryTeal),
+            pw.SizedBox(height: 8),
+            _buildSummarySection(patient, latestAssessment, report, fontBold),
+            pw.SizedBox(height: 24),
+
+            // Signatures block
+            _buildSignaturesBlock(report, fontBold, greyText),
+          ];
+        },
+      ),
+    );
+
+    return doc.save();
+  }
+
+  static pw.Widget _buildSectionHeader(String title, PdfColor color) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          title,
+          style: pw.TextStyle(
+            color: color,
+            fontWeight: pw.FontWeight.bold,
+            fontSize: 12,
+          ),
+        ),
+        pw.SizedBox(height: 3),
+        pw.Container(
+          height: 1,
+          color: color,
+        ),
+      ],
+    );
+  }
+
+  static pw.Widget _buildPatientDetailsGrid(
+    Patient patient,
+    Assessment? assessment,
+    PdfColor greyText,
+    PdfColor deepNavy,
+    pw.Font boldFont,
+  ) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.grey300, width: 0.5),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+      ),
+      child: pw.Column(
+        children: [
+          pw.Row(
+            children: [
+              pw.Expanded(child: _buildGridItem('Patient Name', patient.name, boldFont, greyText, deepNavy)),
+              pw.Expanded(child: _buildGridItem('Patient ID', patient.id, boldFont, greyText, deepNavy)),
+              pw.Expanded(child: _buildGridItem('Age', '${patient.age} years', boldFont, greyText, deepNavy)),
+            ],
+          ),
+          pw.SizedBox(height: 10),
+          pw.Row(
+            children: [
+              pw.Expanded(child: _buildGridItem('Pregnancy Week', 'Week ${patient.pregnancyWeek}', boldFont, greyText, deepNavy)),
+              pw.Expanded(child: _buildGridItem('Blood Group', patient.bloodGroup, boldFont, greyText, deepNavy)),
+              pw.Expanded(child: _buildGridItem('Contact', patient.phone, boldFont, greyText, deepNavy)),
+            ],
+          ),
+          pw.SizedBox(height: 10),
+          pw.Row(
+            children: [
+              pw.Expanded(
+                child: _buildGridItem(
+                  'Expected Delivery Date',
+                  patient.expectedDeliveryDate == null ? 'Not recorded' : _formatDate(patient.expectedDeliveryDate!),
+                  boldFont,
+                  greyText,
+                  deepNavy,
+                ),
+              ),
+              pw.Expanded(
+                child: _buildGridItem(
+                  'Address',
+                  patient.address,
+                  boldFont,
+                  greyText,
+                  deepNavy,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _buildGridItem(
+    String label,
+    String value,
+    pw.Font boldFont,
+    PdfColor labelColor,
+    PdfColor valColor,
+  ) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(label, style: pw.TextStyle(color: labelColor, fontSize: 8)),
+        pw.SizedBox(height: 2),
+        pw.Text(
+          value,
+          style: pw.TextStyle(
+            fontWeight: pw.FontWeight.bold,
+            color: valColor,
+            fontSize: 10,
+          ),
+        ),
+      ],
+    );
+  }
+
+  static pw.Widget _buildVitalsTable(
+    Patient patient,
+    Assessment? assessment,
+    PdfColor rowBg,
+    PdfColor deepNavy,
+    pw.Font boldFont,
+  ) {
+    final vitals = assessment?.vitals ?? patient.currentVitals;
+
+    final tableData = [
+      ['Vital Sign', 'Current Value', 'Reference Range', 'Status'],
+      [
+        'Blood Pressure',
+        vitals['bloodPressure'] ?? 'Not recorded',
+        '90/60 - 120/80 mmHg',
+        _getBpStatus(vitals['bloodPressure'])
+      ],
+      [
+        'Pulse Rate',
+        vitals['pulse'] != null ? '${vitals['pulse']} bpm' : 'Not recorded',
+        '60 - 100 bpm',
+        _getPulseStatus(vitals['pulse'])
+      ],
+      [
+        'Body Temperature',
+        vitals['temperature'] != null ? '${vitals['temperature']} F' : 'Not recorded',
+        '97.0 - 99.0 F',
+        _getTempStatus(vitals['temperature'])
+      ],
+      [
+        'Hemoglobin (Hb)',
+        vitals['haemoglobin'] != null ? '${vitals['haemoglobin']} g/dL' : 'Not recorded',
+        '> 11.0 g/dL',
+        _getHbStatus(vitals['haemoglobin'])
+      ],
+    ];
+
+    return pw.Table(
+      border: const pw.TableBorder(
+        horizontalInside: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+        bottom: pw.BorderSide(color: PdfColors.grey400, width: 0.5),
+        top: pw.BorderSide(color: PdfColors.grey400, width: 0.5),
+      ),
+      columnWidths: const {
+        0: pw.FlexColumnWidth(2),
+        1: pw.FlexColumnWidth(2),
+        2: pw.FlexColumnWidth(2),
+        3: pw.FlexColumnWidth(1.5),
+      },
+      children: tableData.asMap().entries.map((entry) {
+        final index = entry.key;
+        final row = entry.value;
+        final isHeader = index == 0;
+
+        return pw.TableRow(
+          decoration: isHeader ? pw.BoxDecoration(color: rowBg) : null,
+          children: row.map((cell) {
+            return pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+              child: pw.Text(
+                cell,
+                style: pw.TextStyle(
+                  fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
+                  fontSize: 9,
+                  color: deepNavy,
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      }).toList(),
+    );
+  }
+
+  static pw.Widget _buildRiskScoreSection(
+    Patient patient,
+    Assessment? assessment,
+    PdfColor primaryColor,
+    PdfColor deepNavy,
+    pw.Font boldFont,
+  ) {
+    final riskLevel = patient.riskLevel;
+    final riskScore = assessment?.riskScore ?? patient.riskScore;
+    final urgency = assessment?.urgency ?? 'Suggested Review';
+
+    PdfColor riskBadgeColor;
+    if (riskLevel == 'Stable') {
+      riskBadgeColor = PdfColors.green700;
+    } else if (riskLevel == 'Needs Review') {
+      riskBadgeColor = PdfColors.orange700;
+    } else {
+      riskBadgeColor = PdfColors.red700;
+    }
+
+    final dangerSigns = assessment?.dangerSigns ?? [];
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.grey300, width: 0.5),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    'Assessment Urgency: $urgency',
+                    style: pw.TextStyle(
+                      fontWeight: pw.FontWeight.bold,
+                      color: deepNavy,
+                      fontSize: 10,
+                    ),
+                  ),
+                  pw.SizedBox(height: 2),
+                  pw.Text(
+                    'Risk score calculated by decision support tools.',
+                    style: pw.TextStyle(color: PdfColors.grey600, fontSize: 8),
+                  ),
+                ],
+              ),
+              pw.Container(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: pw.BoxDecoration(
+                  color: riskBadgeColor,
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
+                ),
+                child: pw.Text(
+                  '$riskLevel - Risk Score: $riskScore/100',
+                  style: pw.TextStyle(
+                    color: PdfColors.white,
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          pw.Divider(color: PdfColors.grey200, height: 16),
+          pw.Text(
+            'Identified Danger Signs:',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9, color: deepNavy),
+          ),
+          pw.SizedBox(height: 4),
+          if (dangerSigns.isEmpty)
+            pw.Text('No severe danger signs identified during last assessment.',
+                style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700))
+          else
+            pw.Bullet(
+              text: dangerSigns.join(', '),
+              style: pw.TextStyle(fontSize: 9, color: PdfColors.red700, fontWeight: pw.FontWeight.bold),
+            ),
+          pw.SizedBox(height: 8),
+          pw.Text(
+            'System Assessment Summary:',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9, color: deepNavy),
+          ),
+          pw.SizedBox(height: 2),
+          pw.Text(
+            assessment?.explanation ??
+                'Risk score indicates active observation. Recommended to monitor vitals, track warning signs and arrange timely clinical referrals.',
+            style: pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+          ),
+          pw.SizedBox(height: 8),
+          pw.Container(
+            padding: const pw.EdgeInsets.all(6),
+            decoration: const pw.BoxDecoration(
+              color: PdfColors.yellow50,
+              borderRadius: pw.BorderRadius.all(pw.Radius.circular(4)),
+            ),
+            child: pw.Text(
+              'DISCLAIMER: AI-assisted information is intended to support healthcare workers and does not replace professional medical judgment.',
+              style: pw.TextStyle(
+                fontSize: 7.5,
+                color: PdfColors.grey700,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _buildDoctorReviewSection(
+    ReportRecord report,
+    PdfColor greyText,
+    PdfColor deepNavy,
+    pw.Font boldFont,
+  ) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.grey300, width: 0.5),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                'Clinical Reviewer: ${report.doctorName ?? 'Not recorded'}',
+                style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: deepNavy, fontSize: 10),
+              ),
+              pw.Text(
+                'Facility: ${report.hospitalName ?? 'Not recorded'}',
+                style: pw.TextStyle(color: greyText, fontSize: 9),
+              ),
+            ],
+          ),
+          pw.Divider(color: PdfColors.grey200, height: 16),
+          pw.Text(
+            'Doctor Observations:',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9, color: deepNavy),
+          ),
+          pw.SizedBox(height: 2),
+          pw.Text(
+            report.observations ?? 'No detailed observations documented.',
+            style: pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+          ),
+          pw.SizedBox(height: 8),
+          pw.Text(
+            'Clinical Impression:',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9, color: deepNavy),
+          ),
+          pw.SizedBox(height: 2),
+          pw.Text(
+            report.clinicalImpression ?? 'Review details pending clinical documentation.',
+            style: pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+          ),
+          pw.SizedBox(height: 8),
+          pw.Text(
+            'Recommendations / Prescriptions:',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9, color: deepNavy),
+          ),
+          pw.SizedBox(height: 2),
+          pw.Text(
+            report.recommendedActions ?? 'No actions specified.',
+            style: pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+          ),
+          if (report.followUpDate != null) ...[
+            pw.SizedBox(height: 8),
+            pw.Row(
+              children: [
+                pw.Text(
+                  'Recommended Follow-up Date: ',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9, color: deepNavy),
+                ),
+                pw.Text(
+                  _formatDate(report.followUpDate!),
+                  style: pw.TextStyle(fontSize: 9, color: PdfColors.red700, fontWeight: pw.FontWeight.bold),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _buildFacilitySection(
+    Facility facility,
+    PdfColor greyText,
+    PdfColor deepNavy,
+    pw.Font boldFont,
+  ) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: PdfColors.grey300, width: 0.5),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            facility.name,
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: deepNavy, fontSize: 10),
+          ),
+          pw.SizedBox(height: 2),
+          pw.Text(
+            '${facility.type} • Distance: ${facility.distance.toStringAsFixed(1)} km away',
+            style: pw.TextStyle(color: greyText, fontSize: 9),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            'Address: ${facility.address}',
+            style: pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            'Available Services: ${facility.services.join(", ")}',
+            style: pw.TextStyle(fontSize: 9, color: PdfColors.grey800, fontWeight: pw.FontWeight.bold),
+          ),
+          if (facility.phone != null) ...[
+            pw.SizedBox(height: 4),
+            pw.Text(
+              'Facility Contact: ${facility.phone}',
+              style: pw.TextStyle(fontSize: 9, color: PdfColors.grey800),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _buildTransportSection(
+    List<TransportRequest> transports,
+    PdfColor greyText,
+    PdfColor deepNavy,
+    pw.Font boldFont,
+    PdfColor headerBg,
+  ) {
+    return pw.Table(
+      border: const pw.TableBorder(
+        horizontalInside: pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+        bottom: pw.BorderSide(color: PdfColors.grey400, width: 0.5),
+        top: pw.BorderSide(color: PdfColors.grey400, width: 0.5),
+      ),
+      columnWidths: const {
+        0: pw.FlexColumnWidth(2),
+        1: pw.FlexColumnWidth(2),
+        2: pw.FlexColumnWidth(2.5),
+        3: pw.FlexColumnWidth(1.5),
+      },
+      children: [
+        pw.TableRow(
+          decoration: pw.BoxDecoration(color: headerBg),
+          children: [
+            pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+              child: pw.Text('Booking ID / Date', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5)),
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+              child: pw.Text('Type / Vehicle', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5)),
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+              child: pw.Text('Destination', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5)),
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+              child: pw.Text('Status', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5)),
+            ),
+          ],
+        ),
+        ...transports.map((transport) {
+          return pw.TableRow(
+            children: [
+              pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(transport.id, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8)),
+                    pw.Text(_formatDate(transport.requestedAt), style: pw.TextStyle(fontSize: 7.5, color: greyText)),
+                  ],
+                ),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(transport.transportType, style: pw.TextStyle(fontSize: 8)),
+                    pw.Text(transport.vehicleInfo, style: pw.TextStyle(fontSize: 7.5, color: greyText)),
+                  ],
+                ),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                child: pw.Text(transport.destinationName, style: pw.TextStyle(fontSize: 8)),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                child: pw.Text(transport.status, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+              ),
+            ],
+          );
+        }),
+      ],
+    );
+  }
+
+  static pw.Widget _buildTimelineSection(
+    List<TimelineEvent> events,
+    PdfColor greyText,
+    PdfColor deepNavy,
+    pw.Font boldFont,
+  ) {
+    return pw.Column(
+      children: events.take(6).map((event) {
+        return pw.Padding(
+          padding: const pw.EdgeInsets.only(bottom: 6),
+          child: pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Container(
+                margin: const pw.EdgeInsets.only(top: 3, right: 10),
+                width: 6,
+                height: 6,
+                decoration: const pw.BoxDecoration(
+                  color: PdfColors.grey600,
+                  shape: pw.BoxShape.circle,
+                ),
+              ),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(
+                    event.eventType,
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9, color: deepNavy),
+                  ),
+                  pw.Text(
+                    '${_formatDate(event.timestamp)} ${_formatTime(event.timestamp)}',
+                    style: pw.TextStyle(color: greyText, fontSize: 8),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  static pw.Widget _buildSummarySection(
+    Patient patient,
+    Assessment? assessment,
+    ReportRecord report,
+    pw.Font boldFont,
+  ) {
+    final urgency = assessment?.urgency ?? 'Routine';
+    final action = urgency == 'Immediate Attention' || patient.riskLevel == 'Emergency'
+        ? 'Emergency referral suggested. Arrange immediate transport facility.'
+        : 'Regular follow-up & continuous monitoring of vital signs.';
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: const pw.BoxDecoration(
+        color: PdfColors.grey100,
+        borderRadius: pw.BorderRadius.all(pw.Radius.circular(6)),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Row(
+            children: [
+              pw.Text(
+                'Current Case Status: ',
+                style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+              ),
+              pw.Text(
+                report.status,
+                style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.blue800),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 6),
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                'Primary Finding: ',
+                style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+              ),
+              pw.Expanded(
+                child: pw.Text(
+                  assessment?.explanation ?? 'Vitals and observations indicate active follow-up recommended.',
+                  style: pw.TextStyle(fontSize: 9),
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 6),
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                'Recommended Action: ',
+                style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+              ),
+              pw.Expanded(
+                child: pw.Text(
+                  action,
+                  style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.red800),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _buildSignaturesBlock(
+    ReportRecord report,
+    pw.Font boldFont,
+    PdfColor labelColor,
+  ) {
+    return pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      children: [
+        pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Container(width: 120, height: 1, color: PdfColors.grey400),
+            pw.SizedBox(height: 4),
+            pw.Text('ASHA Worker Signature', style: pw.TextStyle(fontSize: 8, color: labelColor)),
+            pw.Text(report.createdBy, style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)),
+          ],
+        ),
+        if (report.doctorName != null)
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Container(width: 120, height: 1, color: PdfColors.grey400),
+              pw.SizedBox(height: 4),
+              pw.Text('Medical Reviewer Signature', style: pw.TextStyle(fontSize: 8, color: labelColor)),
+              pw.Text(report.doctorName!, style: pw.TextStyle(fontSize: 8.5, fontWeight: pw.FontWeight.bold)),
+            ],
+          ),
+      ],
+    );
+  }
+
+  // Formatting utilities
+  static String _formatDate(DateTime date) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  static String _formatTime(DateTime date) {
+    final suffix = date.hour >= 12 ? 'PM' : 'AM';
+    final hour = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
+    return '$hour:${date.minute.toString().padLeft(2, "0")} $suffix';
+  }
+
+  // Vital Status evaluation
+  static String _getBpStatus(String? val) {
+    if (val == null || val == '-') return 'N/A';
+    final parts = val.split('/');
+    if (parts.length < 2) return 'Normal';
+    final sys = int.tryParse(parts[0]) ?? 120;
+    final dia = int.tryParse(parts[1]) ?? 80;
+    if (sys > 140 || dia > 90) return 'Elevated';
+    if (sys < 90 || dia < 60) return 'Low';
+    return 'Normal';
+  }
+
+  static String _getPulseStatus(String? val) {
+    if (val == null) return 'N/A';
+    final num = int.tryParse(val);
+    if (num == null) return 'Normal';
+    if (num > 100) return 'Tachycardia';
+    if (num < 60) return 'Bradycardia';
+    return 'Normal';
+  }
+
+  static String _getTempStatus(String? val) {
+    if (val == null) return 'N/A';
+    final num = double.tryParse(val);
+    if (num == null) return 'Normal';
+    if (num > 99.0) return 'Fever';
+    if (num < 96.0) return 'Low Temp';
+    return 'Normal';
+  }
+
+  static String _getHbStatus(String? val) {
+    if (val == null) return 'N/A';
+    final num = double.tryParse(val);
+    if (num == null) return 'Normal';
+    if (num < 11.0) return 'Anemic';
+    return 'Normal';
+  }
+}

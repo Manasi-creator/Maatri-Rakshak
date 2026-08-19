@@ -63,13 +63,13 @@ class AssessmentsPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 28),
-          Expanded(child: _buildAssessmentsList(assessments)),
+          Expanded(child: _buildAssessmentsList(context, assessments)),
         ],
       ),
     );
   }
 
-  Widget _buildAssessmentsList(List<Assessment> assessments) {
+  Widget _buildAssessmentsList(BuildContext context, List<Assessment> assessments) {
     if (assessments.isEmpty) {
       return Center(
         child: Text(
@@ -218,7 +218,26 @@ class AssessmentsPage extends StatelessWidget {
                         ),
                         ElevatedButton(
                           onPressed: () {
-                            // TODO: View assessment details
+                            final dataRepo = MockDataRepository.instance();
+                            final patient = dataRepo.getPatient(assessment.patientId);
+                            if (patient != null) {
+                              dataRepo.selectedPatient = patient;
+                              Navigator.pushNamed(
+                                context,
+                                Routes.patientDetail,
+                                arguments: {
+                                  'patient': patient,
+                                  'assessment': assessment,
+                                },
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Patient not found for ID: ${assessment.patientId}'),
+                                  backgroundColor: AppColors.highRiskRed,
+                                ),
+                              );
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primaryTeal,

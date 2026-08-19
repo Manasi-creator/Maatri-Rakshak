@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:printing/printing.dart';
 
 import '../../../models/report_record.dart';
+import '../../../services/pdf_report_service.dart';
 import '../../../theme/colors.dart';
 
 class DoctorReviewPage extends StatelessWidget {
@@ -79,9 +81,24 @@ class DoctorReviewPage extends StatelessWidget {
               ],
             ),
             OutlinedButton.icon(
-              onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Prototype PDF download prepared.')),
-              ),
+              onPressed: () async {
+                try {
+                  final pdfBytes = await PdfReportService.generateReport(report);
+                  final dateStr = '${report.createdAt.year}${report.createdAt.month.toString().padLeft(2, '0')}${report.createdAt.day.toString().padLeft(2, '0')}';
+                  final filename = 'MaatriRakshak_${report.patientId}_$dateStr.pdf';
+                  await Printing.layoutPdf(
+                    onLayout: (format) => pdfBytes,
+                    name: filename,
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Unable to generate the report. Please try again. Error: $e'),
+                      backgroundColor: AppColors.highRiskRed,
+                    ),
+                  );
+                }
+              },
               icon: const Icon(Icons.download_rounded),
               label: const Text('Download PDF'),
             ),

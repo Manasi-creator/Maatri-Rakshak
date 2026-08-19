@@ -100,7 +100,12 @@ class _PatientsPageState extends State<PatientsPage> {
         ),
         const SizedBox(width: 12),
         ElevatedButton.icon(
-          onPressed: () => Navigator.pushNamed(context, Routes.patients),
+          onPressed: () async {
+            final result = await Navigator.pushNamed(context, Routes.addPatient);
+            if (result == true) {
+              _filterPatients(_searchController.text);
+            }
+          },
           icon: const Icon(Icons.person_add_rounded),
           label: const Text('+ Add Patient'),
           style: ElevatedButton.styleFrom(
@@ -145,7 +150,12 @@ class _PatientsPageState extends State<PatientsPage> {
               children: [
                 GestureDetector(
                   onTap: () {
-                    // TODO: Navigate to patient detail page
+                    MockDataRepository.instance().selectedPatient = patient;
+                    Navigator.pushNamed(
+                      context,
+                      Routes.patientDetail,
+                      arguments: patient,
+                    );
                   },
                   child: Container(
                     color: Colors.transparent,
@@ -198,7 +208,12 @@ class _PatientsPageState extends State<PatientsPage> {
                         ),
                         ElevatedButton(
                           onPressed: () {
-                            // TODO: Navigate to patient detail
+                            MockDataRepository.instance().selectedPatient = patient;
+                            Navigator.pushNamed(
+                              context,
+                              Routes.patientDetail,
+                              arguments: patient,
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primaryTeal,

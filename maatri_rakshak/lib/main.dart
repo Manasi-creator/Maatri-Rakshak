@@ -17,6 +17,10 @@ import 'pages/asha/help/help_page.dart';
 import 'pages/asha/profile/profile_page.dart';
 import 'pages/asha/timeline/timeline_page.dart';
 import 'pages/asha/transport/transport_page.dart';
+import 'pages/asha/add_patient_page.dart';
+import 'pages/asha/patient_detail_page.dart';
+import 'models/patient.dart';
+import 'models/assessment.dart';
 import 'routes.dart';
 import 'theme/colors.dart';
 
@@ -193,6 +197,32 @@ class _MyAppState extends State<MyApp> {
               builder: (_) => AuthenticatedPortalShell(
                 currentRoute: Routes.profile,
                 child: const ProfilePage(),
+              ),
+            );
+          case Routes.addPatient:
+            return MaterialPageRoute(
+              builder: (_) => const AddPatientPage(),
+            );
+          case Routes.patientDetail:
+            final args = settings.arguments;
+            Patient patient;
+            Assessment? assessment;
+            if (args is Patient) {
+              patient = args;
+            } else if (args is Map<String, dynamic>) {
+              patient = args['patient'] as Patient;
+              assessment = args['assessment'] as Assessment?;
+            } else {
+              return MaterialPageRoute(
+                builder: (_) => const Scaffold(
+                  body: Center(child: Text('Invalid arguments')),
+                ),
+              );
+            }
+            return MaterialPageRoute(
+              builder: (_) => PatientDetailPage(
+                patient: patient,
+                selectedAssessment: assessment,
               ),
             );
         }
