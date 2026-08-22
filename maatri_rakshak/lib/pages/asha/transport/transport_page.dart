@@ -38,7 +38,8 @@ class _TransportPageState extends State<TransportPage> {
       return TransportTrackingPage(
         request: _trackingRequest!,
         onBack: () => setState(() => _trackingRequest = null),
-        onStatusChanged: (request) => setState(() => _trackingRequest = request),
+        onStatusChanged: (request) =>
+            setState(() => _trackingRequest = request),
       );
     }
 
@@ -56,39 +57,50 @@ class _TransportPageState extends State<TransportPage> {
               .toList();
 
           return SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Header(onBook: () => setState(() => _booking = true)),
-                const SizedBox(height: 24),
-                _SummaryCards(requests: requests),
-                if (_bookedRequest != null) ...[
-                  const SizedBox(height: 24),
-                  _BookedConfirmation(
-                    request: _bookedRequest!,
-                    onTrack: () => setState(() {
-                      _trackingRequest = _bookedRequest;
-                      _bookedRequest = null;
-                    }),
-                  ),
-                ],
-                const SizedBox(height: 28),
-                _SectionTitle(title: 'Active Transport'),
-                const SizedBox(height: 12),
-                ...active.map(
-                  (request) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _TransportCard(
-                      request: request,
-                      onTrack: () => setState(() => _trackingRequest = request),
-                    ),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1100),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _Header(onBook: () => setState(() => _booking = true)),
+                      const SizedBox(height: 24),
+                      _SummaryCards(requests: requests),
+                      if (_bookedRequest != null) ...[
+                        const SizedBox(height: 24),
+                        _BookedConfirmation(
+                          request: _bookedRequest!,
+                          onTrack: () => setState(() {
+                            _trackingRequest = _bookedRequest;
+                            _bookedRequest = null;
+                          }),
+                        ),
+                      ],
+                      const SizedBox(height: 28),
+                      _SectionTitle(title: 'Active Transport'),
+                      const SizedBox(height: 12),
+                      ...active.map(
+                        (request) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _TransportCard(
+                            request: request,
+                            onTrack: () =>
+                                setState(() => _trackingRequest = request),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _SectionTitle(title: 'Transport History'),
+                      const SizedBox(height: 12),
+                      ...history.map(
+                        (request) => _HistoryCard(request: request),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 20),
-                _SectionTitle(title: 'Transport History'),
-                const SizedBox(height: 12),
-                ...history.map((request) => _HistoryCard(request: request)),
-              ],
+              ),
             ),
           );
         },
@@ -108,10 +120,13 @@ class _Header extends StatelessWidget {
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 620;
         final title = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: compact
+              ? CrossAxisAlignment.center
+              : CrossAxisAlignment.start,
           children: [
             Text(
               'Emergency Transport',
+              textAlign: compact ? TextAlign.center : TextAlign.start,
               style: GoogleFonts.inter(
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
@@ -121,6 +136,7 @@ class _Header extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               'Coordinate and track transport for patients requiring urgent medical care.',
+              textAlign: compact ? TextAlign.center : TextAlign.start,
               style: GoogleFonts.inter(
                 fontSize: 16,
                 color: AppColors.secondaryText,
@@ -144,13 +160,17 @@ class _Header extends StatelessWidget {
 
         if (compact) {
           return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [title, const SizedBox(height: 14), button],
           );
         }
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [Expanded(child: title), const SizedBox(width: 16), button],
+          children: [
+            Expanded(child: title),
+            const SizedBox(width: 16),
+            button,
+          ],
         );
       },
     );
@@ -165,7 +185,12 @@ class _SummaryCards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cards = [
-      ['Active Requests', '2', Icons.pending_actions_rounded, AppColors.mediumRiskOrange],
+      [
+        'Active Requests',
+        '2',
+        Icons.pending_actions_rounded,
+        AppColors.mediumRiskOrange,
+      ],
       ['Booked', '3', Icons.event_available_rounded, AppColors.primaryTeal],
       ['Completed', '8', Icons.check_circle_rounded, AppColors.lowRiskGreen],
       ['Emergency', '1', Icons.emergency_rounded, AppColors.highRiskRed],
@@ -175,45 +200,47 @@ class _SummaryCards extends StatelessWidget {
         final width = constraints.maxWidth < 600
             ? (constraints.maxWidth - 12) / 2
             : (constraints.maxWidth - 48) / 4;
-        return Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          children: cards.map((card) {
-            final color = card[3] as Color;
-            return SizedBox(
-              width: width.clamp(150, 260).toDouble(),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(card[2] as IconData, color: color),
-                    const SizedBox(height: 12),
-                    Text(
-                      card[1] as String,
-                      style: GoogleFonts.inter(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.deepNavy,
+        return Center(
+          child: Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: cards.map((card) {
+              final color = card[3] as Color;
+              return SizedBox(
+                width: width.clamp(0, 260).toDouble(),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(card[2] as IconData, color: color),
+                      const SizedBox(height: 12),
+                      Text(
+                        card[1] as String,
+                        style: GoogleFonts.inter(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.deepNavy,
+                        ),
                       ),
-                    ),
-                    Text(
-                      card[0] as String,
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: AppColors.secondaryText,
+                      Text(
+                        card[0] as String,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppColors.secondaryText,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }).toList(),
+              );
+            }).toList(),
+          ),
         );
       },
     );
@@ -233,7 +260,9 @@ class _BookedConfirmation extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.lightTeal,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primaryTeal.withValues(alpha: 0.35)),
+        border: Border.all(
+          color: AppColors.primaryTeal.withValues(alpha: 0.35),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -389,7 +418,10 @@ class _Info extends StatelessWidget {
         children: [
           Text(
             label,
-            style: GoogleFonts.inter(fontSize: 12, color: AppColors.secondaryText),
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: AppColors.secondaryText,
+            ),
           ),
           const SizedBox(height: 3),
           Text(

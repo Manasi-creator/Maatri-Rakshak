@@ -279,7 +279,8 @@ class SignUpPage extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              Row(
+                              Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
                                   const Text('Already have an account?'),
                                   TextButton(

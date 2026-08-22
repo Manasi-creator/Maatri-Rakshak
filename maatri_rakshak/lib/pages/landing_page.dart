@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import '../routes.dart';
 import '../theme/colors.dart';
 
@@ -26,9 +25,7 @@ class LandingPageWidget extends StatelessWidget {
                       _HeroSection(),
                       SizedBox(height: 28),
                       _CapabilityCards(),
-                      SizedBox(height: 72),
-                      _AboutSection(),
-                      SizedBox(height: 72),
+                      SizedBox(height: 0),
                       _WorkflowSection(),
                       SizedBox(height: 72),
                       _FeatureGridSection(),
@@ -64,73 +61,72 @@ class _LandingHeader extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: AppColors.lightTeal,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(
-                        Icons.favorite_rounded,
-                        color: AppColors.primaryTeal,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'MaatriRakshak',
-                          style: GoogleFonts.inter(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.deepNavy,
-                          ),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: AppColors.lightTeal,
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                        Text(
-                          'Early maternal emergency support',
-                          style: GoogleFonts.inter(
-                            fontSize: 10,
-                            color: AppColors.secondaryText,
+                        child: const Icon(
+                          Icons.favorite_rounded,
+                          color: AppColors.primaryTeal,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'MaatriRakshak',
+                            style: GoogleFonts.inter(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.deepNavy,
+                            ),
                           ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: () =>
+                              Navigator.of(context).pushNamed(Routes.signIn),
+                          child: const Text('Sign In'),
+                        ),
+                        const SizedBox(width: 6),
+                        ElevatedButton(
+                          onPressed: () =>
+                              Navigator.of(context).pushNamed(Routes.signUp),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryTeal,
+                            foregroundColor: AppColors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 12,
+                            ),
+                          ),
+                          child: const Text('Sign Up'),
                         ),
                       ],
                     ),
-                  ],
-                ),
-                const Spacer(),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextButton(
-                        onPressed: () =>
-                            Navigator.of(context).pushNamed(Routes.signIn),
-                        child: const Text('Sign In'),
-                      ),
-                      const SizedBox(width: 6),
-                      ElevatedButton(
-                        onPressed: () =>
-                            Navigator.of(context).pushNamed(Routes.signUp),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primaryTeal,
-                          foregroundColor: AppColors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 12,
-                          ),
-                        ),
-                        child: const Text('Sign Up'),
-                      ),
-                    ],
                   ),
                 ),
               ],
@@ -150,165 +146,66 @@ class _HeroSection extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 1100;
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.softBlush,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      'OFFLINE-FIRST MATERNAL HEALTH SUPPORT',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        letterSpacing: 1.2,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primaryTeal,
-                      ),
-                    ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
                   ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'Helping ASHA Workers\nAct Earlier. Respond Faster.',
+                  decoration: BoxDecoration(
+                    color: AppColors.softBlush,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    'OFFLINE-FIRST MATERNAL HEALTH SUPPORT',
+                    textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
-                      fontSize: compact ? 36 : 54,
-                      height: 1.08,
+                      fontSize: 11,
+                      letterSpacing: 1.2,
                       fontWeight: FontWeight.w800,
-                      color: AppColors.deepNavy,
+                      color: AppColors.primaryTeal,
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'MaatriRakshak helps ASHA workers identify maternal danger signs, assess urgency, coordinate timely care, and maintain a complete patient case history even when internet connectivity is unreliable.',
-                    style: GoogleFonts.inter(
-                      fontSize: 18,
-                      height: 1.6,
-                      color: AppColors.secondaryText,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Icon(Icons.shield_outlined, color: AppColors.primaryTeal),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Designed for frontline maternal healthcare',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primaryText,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            if (!compact) const SizedBox(width: 24),
-            if (!compact)
-              Expanded(child: _HeroGraphic())
-            else
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 24),
-                  child: _HeroGraphic(),
                 ),
-              ),
+                const SizedBox(height: 18),
+                Text(
+                  'Helping ASHA Workers\nAct Earlier. Respond Faster.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
+                    fontSize: compact ? 36 : 54,
+                    height: 1.08,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.deepNavy,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  children: [
+                    Icon(Icons.shield_outlined, color: AppColors.primaryTeal),
+                    Text(
+                      'Designed for frontline maternal healthcare',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primaryText,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ],
         );
       },
-    );
-  }
-}
-
-class _HeroGraphic extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 480,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(36),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.softBlush,
-            AppColors.warmCream,
-            AppColors.lightTeal,
-          ],
-        ),
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Positioned(
-            child: Container(
-              width: 340,
-              height: 340,
-              decoration: BoxDecoration(
-                color: AppColors.white.withValues(alpha: 0.96),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 24,
-            child: Container(
-              width: 220,
-              height: 230,
-              decoration: const BoxDecoration(
-                color: AppColors.primaryTeal,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(110)),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 130,
-            left: 120,
-            child: Container(
-              width: 150,
-              height: 150,
-              decoration: const BoxDecoration(
-                color: AppColors.softCoralPink,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 160,
-            left: 150,
-            child: Container(
-              width: 80,
-              height: 80,
-              decoration: const BoxDecoration(
-                color: AppColors.white,
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: 188,
-            left: 120,
-            child: Container(
-              width: 180,
-              height: 12,
-              decoration: const BoxDecoration(
-                color: AppColors.deepNavy,
-                borderRadius: BorderRadius.all(Radius.circular(6)),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -319,129 +216,63 @@ class _CapabilityCards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cards = [
-      ['OFFLINE-FIRST', 'Works even with limited connectivity'],
-      ['AI-ASSISTED', 'Context-aware support for every patient'],
-      ['ACTION-ORIENTED', 'Guides ASHA workers toward timely next steps'],
+      ['OFFLINE-FIRST'],
+      ['AI-ASSISTED'],
+      ['ACTION-ORIENTED'],
     ];
 
-    return Wrap(
-      spacing: 16,
-      runSpacing: 16,
-      children: cards.map((card) {
-        return SizedBox(
-          width: 320,
-          child: Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: AppColors.lightTeal,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.check_circle_outline,
-                    color: AppColors.primaryTeal,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        card[0],
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primaryTeal,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        card[1],
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          color: AppColors.secondaryText,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-class _AboutSection extends StatelessWidget {
-  const _AboutSection();
-
-  @override
-  Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.maxWidth < 900;
-        return Row(
-          children: [
-            if (!compact)
-              Expanded(
-                child: Container(
-                  height: 380,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.softBlush, AppColors.lightTeal],
+        return Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: cards.map((card) {
+            return SizedBox(
+              width: constraints.maxWidth.clamp(0, 320),
+              child: Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: AppColors.lightTeal,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.check_circle_outline,
+                        color: AppColors.primaryTeal,
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      Icons.pregnant_woman_rounded,
-                      size: 180,
-                      color: AppColors.primaryTeal,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            card[0],
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.primaryTeal,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
-            if (!compact) const SizedBox(width: 28),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Built for the Frontline of Maternal Healthcare',
-                    style: GoogleFonts.inter(
-                      fontSize: compact ? 30 : 38,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.deepNavy,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'ASHA workers frequently assess pregnant women in areas where internet connectivity is unreliable, specialist support may not be immediately available, patient information can be fragmented, and emergency decisions need to happen quickly.',
-                    style: GoogleFonts.inter(
-                      fontSize: 17,
-                      height: 1.7,
-                      color: AppColors.secondaryText,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            );
+          }).toList(),
         );
       },
     );
@@ -454,32 +285,14 @@ class _WorkflowSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final steps = [
-      [
-        'Create Patient',
-        'ASHA worker creates a patient profile and records pregnancy history.',
-      ],
-      [
-        'Assess',
-        'Enter symptoms, vitals, pregnancy history and current condition.',
-      ],
-      [
-        'Identify Risk',
-        'The offline risk engine evaluates danger signs and generates risk level and concern list.',
-      ],
-      [
-        'AI Guidance',
-        'The patient-specific AI assistant explains the concern and recommends next steps.',
-      ],
-      ['Find Care', 'Recommend suitable nearby healthcare facilities.'],
-      [
-        'Coordinate Transport',
-        'ASHA worker can find, book and track emergency transport.',
-      ],
-      [
-        'Medical Review',
-        'Doctor observations and treatment decisions are recorded.',
-      ],
-      ['Case Summary', 'A complete case summary and timeline is generated.'],
+      ['Create Patient'],
+      ['Assess'],
+      ['Identify Risk'],
+      ['AI Guidance'],
+      ['Find Care'],
+      ['Coordinate Transport'],
+      ['Medical Review'],
+      ['Case Summary'],
     ];
 
     return Column(
@@ -538,15 +351,6 @@ class _WorkflowSection extends StatelessWidget {
                           color: AppColors.deepNavy,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        step[1],
-                        style: GoogleFonts.inter(
-                          fontSize: 15,
-                          height: 1.6,
-                          color: AppColors.secondaryText,
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -565,32 +369,14 @@ class _FeatureGridSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final features = [
-      [
-        'Offline Risk Screening',
-        'Assess maternal danger signs even without internet connectivity.',
-      ],
-      [
-        'Multilingual Support',
-        'Use English or Marathi for easier interaction in the field.',
-      ],
-      [
-        'AI-Assisted Patient Support',
-        'Receive patient-specific explanations and guided questions.',
-      ],
-      ['Maternal Risk Score', 'Understand risk and urgency at a glance.'],
-      [
-        'Facility Recommendation',
-        'Identify appropriate nearby healthcare facilities.',
-      ],
-      ['Transport Coordination', 'Book and track emergency transport.'],
-      [
-        'Medical Review',
-        'Record structured doctor observations and recommendations.',
-      ],
-      [
-        'Case Timeline',
-        'Maintain a chronological record of assessments, vitals, reviews and actions.',
-      ],
+      ['Offline Risk Screening'],
+      ['Multilingual Support'],
+      ['AI-Assisted Patient Support'],
+      ['Maternal Risk Score'],
+      ['Facility Recommendation'],
+      ['Transport Coordination'],
+      ['Medical Review'],
+      ['Case Timeline'],
     ];
 
     return Column(
@@ -644,15 +430,6 @@ class _FeatureGridSection extends StatelessWidget {
                           color: AppColors.deepNavy,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        feature[1],
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          height: 1.5,
-                          color: AppColors.secondaryText,
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -689,15 +466,6 @@ class _OfflineSection extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 14),
-          Text(
-            'MaatriRakshak is designed to work offline. Patient information and assessments can be stored securely on the device and synchronized automatically when connectivity becomes available.',
-            style: GoogleFonts.inter(
-              fontSize: 17,
-              height: 1.7,
-              color: AppColors.secondaryText,
-            ),
-          ),
         ],
       ),
     );
@@ -723,7 +491,7 @@ class _RiskSection extends StatelessWidget {
         ),
         const SizedBox(height: 18),
         Center(
-          child : Wrap(
+          child: Wrap(
             spacing: 16,
             runSpacing: 16,
             children: const [
@@ -848,16 +616,6 @@ class _CTASection extends StatelessWidget {
             fontSize: 32,
             fontWeight: FontWeight.w800,
             color: AppColors.deepNavy,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 18),
-        Text(
-          'MaatriRakshak empowers ASHA workers with decision support that works offline, adapts to local context, and ensures no mother is left behind.',
-          style: GoogleFonts.inter(
-            fontSize: 17,
-            height: 1.7,
-            color: AppColors.secondaryText,
           ),
           textAlign: TextAlign.center,
         ),
